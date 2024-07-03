@@ -1,0 +1,282 @@
+import java.util.Date;
+
+public abstract class LibraryItem {
+    protected String id;
+    protected String title;
+    protected boolean isCheckedOut;
+    protected Date dueDate;
+
+    public LibraryItem(String id, String title) {
+        this.id = id;
+        this.title = title;
+        this.isCheckedOut = false;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public boolean isCheckedOut() {
+        return isCheckedOut;
+    }
+
+    public void checkOut(Date dueDate) {
+        this.isCheckedOut = true;
+        this.dueDate = dueDate;
+    }
+
+    public void returnItem() {
+        this.isCheckedOut = false;
+        this.dueDate = null;
+    }
+
+    public abstract String getDetails();
+}
+
+
+
+public class Book extends LibraryItem {
+    private String author;
+
+    public Book(String id, String title, String author) {
+        super(id, title);
+        this.author = author;
+    }
+
+    @Override
+    public String getDetails() {
+        return "Book [ID=" + id + ", Title=" + title + ", Author=" + author + "]";
+    }
+}
+
+public class Magazine extends LibraryItem {
+    private String publisher;
+
+    public Magazine(String id, String title, String publisher) {
+        super(id, title);
+        this.publisher = publisher;
+    }
+
+    @Override
+    public String getDetails() {
+        return "Magazine [ID=" + id + ", Title=" + title + ", Publisher=" + publisher + "]";
+    }
+}
+
+public class DVD extends LibraryItem {
+    private String director;
+
+    public DVD(String id, String title, String director) {
+        super(id, title);
+        this.director = director;
+    }
+
+    @Override
+    public String getDetails() {
+        return "DVD [ID=" + id + ", Title=" + title + ", Director=" + director + "]";
+    }
+}
+public abstract class User {
+    protected String id;
+    protected String name;
+
+    public User(String id, String name) {
+        this.id = id;
+        this.name = name;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public String getName() {
+        return name;
+    }
+}
+
+public class Librarian extends User {
+    public Librarian(String id, String name) {
+        super(id, name);
+    }
+
+    // Additional librarian-specific methods can be added here
+}
+
+public class Patron extends User {
+    public Patron(String id, String name) {
+        super(id, name);
+    }
+
+    
+}
+import java.util.*;
+
+public class Library {
+    private Map<String, LibraryItem> items;
+    private Map<String, User> users;
+    private Map<String, List<LibraryItem>> borrowedItems;
+
+    public Library() {
+        items = new HashMap<>();
+        users = new HashMap<>();
+        borrowedItems = new HashMap<>();
+    }
+
+    public void addItem(LibraryItem item) {
+        items.put(item.getId(), item);
+        System.out.println(item.getTitle() + " added to the library.");
+    }
+
+    public void registerUser(User user) {
+        users.put(user.getId(), user);
+        System.out.println(user.getName() + " registered as a user.");
+    }
+
+    public void checkOutItem(String userId, String itemId, Date dueDate) {
+        LibraryItem item = items.get(itemId);
+        if (item != null && !item.isCheckedOut()) {
+            item.checkOut(dueDate);
+            borrowedItems.computeIfAbsent(userId, k -> new ArrayList<>()).add(item);
+            System.out.println("Item checked out: " + item.getTitle());
+        } else {
+            System.out.println("Item is not available for checkout.");
+        }
+    }
+
+    public void returnItem(String userId, String itemId) {
+        LibraryItem item = items.get(itemId);
+        if (item != null && item.isCheckedOut()) {
+            item.returnItem();
+            borrowedItems.get(userId).remove(item);
+            System.out.println("Item returned: " + item.getTitle());
+        } else {
+            System.out.println("Item not found or not checked out.");
+        }
+    }
+
+    public void searchItems(String query) {
+        items.values().stream()
+                .filter(item -> item.getTitle().toLowerCase().contains(query.toLowerCase()))
+                .forEach(item -> System.out.println(item.getDetails()));
+    }
+
+    
+}
+
+import java.io.*;
+import java.util.*;
+
+public class DataPersistence {
+    public static void saveLibraryData(Library library, String filename) throws IOException {
+        try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(filename))) {
+            out.writeObject(library);
+        }
+    }
+
+    public static Library loadLibraryData(String filename) throws IOException, ClassNotFoundException {
+        try (ObjectInputStream in = new ObjectInputStream(new FileInputStream(filename))) {
+            return (Library) in.readObject();
+        }
+    }
+}
+import java.util.Date;
+import java.util.Scanner;
+
+public class Main {
+    public static void main(String[] args) {
+        Library library = new Library();
+        Scanner scanner = new Scanner(System.in);
+
+        while (true) {
+            System.out.println("Library Management System");
+            System.out.println("1. Add Item");
+            System.out.println("2. Register User");
+            System.out.println("3. Check Out Item");
+            System.out.println("4. Return Item");
+            System.out.println("5. Search Items");
+            System.out.println("6. Exit");
+            System.out.print("Choose an option: ");
+            int choice = scanner.nextInt();
+
+            switch (choice) {
+                case 1:
+                    System.out.println("Select item type: 1. Book 2. Magazine 3. DVD");
+                    int itemType = scanner.nextInt();
+                    scanner.nextLine(); // Consume newline
+
+                    System.out.print("Enter item ID: ");
+                    String id = scanner.nextLine();
+                    System.out.print("Enter title: ");
+                    String title = scanner.nextLine();
+
+                    if (itemType == 1) {
+                        System.out.print("Enter author: ");
+                        String author = scanner.nextLine();
+                        library.addItem(new Book(id, title, author));
+                    } else if (itemType == 2) {
+                        System.out.print("Enter publisher: ");
+                        String publisher = scanner.nextLine();
+                        library.addItem(new Magazine(id, title, publisher));
+                    } else if (itemType == 3) {
+                        System.out.print("Enter director: ");
+                        String director = scanner.nextLine();
+                        library.addItem(new DVD(id, title, director));
+                    } else {
+                        System.out.println("Invalid item type.");
+                    }
+                    break;
+                case 2:
+                    System.out.println("Select user type: 1. Librarian 2. Patron");
+                    int userType = scanner.nextInt();
+                    scanner.nextLine(); // Consume newline
+
+                    System.out.print("Enter user ID: ");
+                    String userId = scanner.nextLine();
+                    System.out.print("Enter name: ");
+                    String name = scanner.nextLine();
+
+                    if (userType == 1) {
+                        library.registerUser(new Librarian(userId, name));
+                    } else if (userType == 2) {
+                        library.registerUser(new Patron(userId, name));
+                    } else {
+                        System.out.println("Invalid user type.");
+                    }
+                    break;
+                case 3:
+                    System.out.print("Enter user ID: ");
+                    userId = scanner.nextLine();
+                    System.out.print("Enter item ID: ");
+                    id = scanner.nextLine();
+                    System.out.print("Enter due date (YYYY-MM-DD): ");
+                    String dateStr = scanner.nextLine();
+                    Date dueDate = Date.valueOf(dateStr); // Assuming Java 8+ for simplified date handling
+                    library.checkOutItem(userId, id, dueDate);
+                    break;
+                case 4:
+                    System.out.print("Enter user ID: ");
+                    userId = scanner.nextLine();
+                    System.out.print("Enter item ID: ");
+                    id = scanner.nextLine();
+                    library.returnItem(userId, id);
+                    break;
+                case 5:
+                    System.out.print("Enter search query: ");
+                    String query = scanner.nextLine();
+                    library.searchItems(query);
+                    break;
+                case 6:
+                    System.out.println("Exiting...");
+                    scanner.close();
+                    System.exit(0);
+                    break;
+                default:
+                    System.out.println("Invalid choice. Please try again.");
+            }
+        }
+    }
+}
